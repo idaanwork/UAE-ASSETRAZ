@@ -1,0 +1,2173 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Verification Platform - UAE</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow-x: hidden;
+      background: #f8f9fa;
+    }
+    
+    html {
+      height: 100%;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #1a5490 0%, #0d3b66 100%);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      background: #10b981;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 2000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #1a5490;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .page-section {
+      display: none;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    .verification-step {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .verification-step::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #10b981;
+      border-radius: 4px 0 0 4px;
+    }
+
+    .verification-step.warning::before {
+      background: #f59e0b;
+    }
+
+    .verification-step.error::before {
+      background: #ef4444;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: #1a5490;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-verified {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .property-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .property-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .trust-score-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 8px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .trust-score-circle.high {
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    .trust-score-circle.medium {
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+
+    .trust-score-circle.low {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .verification-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .verification-item {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid transparent;
+    }
+
+    .verification-item.pass {
+      border-left-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .verification-item.warning {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .verification-item.fail {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .nav-tabs {
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      gap: 32px;
+      padding: 0 32px;
+      background: white;
+    }
+
+    .nav-tab {
+      padding: 16px 8px;
+      color: #6b7280;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: -2px;
+    }
+
+    .nav-tab:hover {
+      color: #1a5490;
+    }
+
+    .nav-tab.active {
+      color: #1a5490;
+      border-bottom-color: #1a5490;
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .section-subtitle {
+      color: #6b7280;
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .data-row:last-child {
+      border-bottom: none;
+    }
+
+    .data-label {
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .data-value {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      transition: width 1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      color: white;
+      font-weight: 600;
+      font-size: 12px;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body><!-- Navigation -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+   <div class="max-w-7xl mx-auto px-6 py-4">
+    <div class="flex justify-between items-center"><button id="logo-home-btn" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <div class="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
+       <svg class="w-6 h-6 text-white" fill="currentColor" viewbox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+       </svg>
+      </div>
+      <div>
+       <div class="text-xl font-bold text-gray-900">
+        ASSETRAZ
+       </div>
+       <div class="text-xs text-gray-500">
+        UAE Property Verification
+       </div>
+      </div></button>
+     <nav class="flex gap-8"><button id="nav-home" class="nav-tab active">Home</button> <button id="nav-verify" class="nav-tab">Verify Property</button> <button id="nav-properties" class="nav-tab">My Properties</button>
+     </nav>
+    </div>
+   </div>
+  </header>
+  <main><!-- Home Page -->
+   <section id="page-home" class="page-section active"><!-- Hero Section -->
+    <section class="gradient-bg text-white py-24 px-6">
+     <div class="max-w-7xl mx-auto">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+       <div>
+        <h1 id="main-headline" class="text-5xl lg:text-6xl font-bold mb-6 leading-tight">Secure Property Verification for UAE</h1>
+        <p id="hero-subheadline" class="text-xl mb-8 opacity-90 leading-relaxed">Blockchain-powered trust scores and instant verification certificates</p><button id="cta-button" class="bg-white text-blue-900 px-10 py-4 rounded-xl text-lg font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-2xl">Start Verification</button>
+       </div>
+       <div class="hidden lg:flex items-center justify-center">
+        <div class="relative">
+         <div class="w-80 h-80 bg-white bg-opacity-10 rounded-3xl backdrop-blur-sm flex items-center justify-center transform rotate-6 hover:rotate-0 transition-transform duration-500">
+          <svg class="w-48 h-48 text-white opacity-80" fill="currentColor" viewbox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+          </svg>
+         </div>
+         <div class="absolute -top-6 -right-6 w-32 h-32 bg-yellow-400 rounded-full opacity-20 animate-pulse"></div>
+         <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-purple-400 rounded-full opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </section><!-- Key Features -->
+    <section class="py-20 px-6 bg-gradient-to-br from-gray-50 to-blue-50">
+     <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+       <h2 id="features-title" class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900">Why Choose AssetRaz?</h2>
+       <p class="text-gray-600 text-lg max-w-2xl mx-auto">Comprehensive property verification powered by cutting-edge technology</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"><!-- Feature 1 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-blue-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+         </svg>
+        </div>
+        <h3 id="trust-score-title" class="text-xl font-bold mb-3 text-gray-900">AI-Powered Trust Scores</h3>
+        <p id="trust-score-desc" class="text-gray-600 leading-relaxed">Advanced algorithms analyze property history, ownership, and legal status to generate transparent trust scores</p>
+       </div><!-- Feature 2 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-purple-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /> <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+         </svg>
+        </div>
+        <h3 id="blockchain-title" class="text-xl font-bold mb-3 text-gray-900">Blockchain Certificates</h3>
+        <p id="blockchain-desc" class="text-gray-600 leading-relaxed">Immutable verification certificates stored on blockchain ensure authenticity and prevent fraud</p>
+       </div><!-- Feature 3 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-green-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+         </svg>
+        </div>
+        <h3 id="verification-title" class="text-xl font-bold mb-3 text-gray-900">Instant Verification</h3>
+        <p id="verification-desc" class="text-gray-600 leading-relaxed">Get real-time property verification results in seconds with comprehensive reports and documentation</p>
+       </div><!-- Feature 4 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-yellow-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /> <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+         </svg>
+        </div>
+        <h3 class="text-xl font-bold mb-3 text-gray-900">Comprehensive Reports</h3>
+        <p class="text-gray-600 leading-relaxed">Detailed verification covering legal, environmental, compliance, and safety assessments</p>
+       </div><!-- Feature 5 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-red-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+         </svg>
+        </div>
+        <h3 class="text-xl font-bold mb-3 text-gray-900">Legal Compliance</h3>
+        <p class="text-gray-600 leading-relaxed">Full title deed checks, ownership verification, and regulatory compliance assessments</p>
+       </div><!-- Feature 6 -->
+       <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-indigo-600">
+        <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center mb-6">
+         <svg class="w-8 h-8 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd" />
+         </svg>
+        </div>
+        <h3 class="text-xl font-bold mb-3 text-gray-900">Risk Assessment</h3>
+        <p class="text-gray-600 leading-relaxed">Environmental checks, flood risk analysis, and contamination assessments for peace of mind</p>
+       </div>
+      </div>
+     </div>
+    </section><!-- Stats Section -->
+    <section class="py-20 px-6 bg-white">
+     <div class="max-w-7xl mx-auto">
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+       <div class="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-8 text-white shadow-xl hover:scale-105 transition-transform">
+        <div class="text-5xl font-bold mb-2" id="total-properties">
+         0
+        </div>
+        <div class="text-blue-100 font-semibold">
+         Properties Verified
+        </div>
+        <div class="mt-4 flex items-center text-sm text-blue-100">
+         <svg class="w-4 h-4 mr-1" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+         </svg> Growing daily
+        </div>
+       </div>
+       <div class="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-8 text-white shadow-xl hover:scale-105 transition-transform">
+        <div class="text-5xl font-bold mb-2" id="verified-properties">
+         0
+        </div>
+        <div class="text-purple-100 font-semibold">
+         Active Users
+        </div>
+        <div class="mt-4 flex items-center text-sm text-purple-100">
+         <svg class="w-4 h-4 mr-1" fill="currentColor" viewbox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+         </svg> Trusted worldwide
+        </div>
+       </div>
+       <div class="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-8 text-white shadow-xl hover:scale-105 transition-transform">
+        <div class="text-5xl font-bold mb-2" id="avg-trust-score">
+         0
+        </div>
+        <div class="text-green-100 font-semibold">
+         Avg Trust Score
+        </div>
+        <div class="mt-4 flex items-center text-sm text-green-100">
+         <svg class="w-4 h-4 mr-1" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+         </svg> High quality
+        </div>
+       </div>
+       <div class="bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-2xl p-8 text-white shadow-xl hover:scale-105 transition-transform">
+        <div class="text-5xl font-bold mb-2">
+         99.9%
+        </div>
+        <div class="text-yellow-100 font-semibold">
+         Accuracy Rate
+        </div>
+        <div class="mt-4 flex items-center text-sm text-yellow-100">
+         <svg class="w-4 h-4 mr-1" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+         </svg> Verified results
+        </div>
+       </div>
+      </div>
+     </div>
+    </section>
+   </section><!-- Verify Property Page -->
+   <section id="page-verify" class="page-section py-16 px-6 bg-gradient-to-br from-gray-50 to-blue-50">
+    <div class="max-w-5xl mx-auto">
+     <div class="text-center mb-12">
+      <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Verify Your Property</h2>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto">Enter your property details to start the comprehensive verification process</p>
+     </div>
+     <div class="bg-white rounded-2xl p-10 shadow-2xl border border-gray-200">
+      <form id="verify-property-form">
+       <div class="space-y-6">
+        <div><label for="property-id-input" class="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" />
+          </svg> Property ID </label> <input type="text" id="property-id-input" placeholder="e.g., DXB-12345-2024" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-gray-800 font-medium transition-all" required>
+        </div>
+        <div><label for="property-address-input" class="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+          </svg> Property Address </label> <input type="text" id="property-address-input" placeholder="Enter full property address" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-gray-800 font-medium transition-all" required>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6">
+         <div><label for="property-type-input" class="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+           <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewbox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+           </svg> Property Type </label> <select id="property-type-input" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-gray-800 font-medium transition-all" required> <option value="">Select type</option> <option value="Apartment">Apartment</option> <option value="Villa">Villa</option> <option value="Townhouse">Townhouse</option> <option value="Penthouse">Penthouse</option> <option value="Commercial">Commercial</option> </select>
+         </div>
+         <div><label for="property-area-input" class="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+           <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 5a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
+           </svg> Area (sq ft) </label> <input type="number" id="property-area-input" placeholder="e.g., 2000" class="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-gray-800 font-medium transition-all" required>
+         </div>
+        </div>
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6 mb-4">
+         <div class="flex items-start gap-4">
+          <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+           <svg class="w-6 h-6 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+           </svg>
+          </div>
+          <div>
+           <h4 class="font-bold text-gray-900 mb-2">What happens next?</h4>
+           <p class="text-sm text-gray-700 leading-relaxed">Our AI system will perform comprehensive verification checks including legal status, ownership verification, environmental assessments, and compliance checks. You'll receive a detailed report with a trust score within seconds.</p>
+          </div>
+         </div>
+        </div>
+        <div class="bg-gradient-to-r from-green-50 to-teal-50 border-2 border-green-200 rounded-xl p-6">
+         <div class="flex items-start gap-4">
+          <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+           <svg class="w-6 h-6 text-white" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+           </svg>
+          </div>
+          <div>
+           <h4 class="font-bold text-gray-900 mb-3">📊 Data Sources &amp; Transparency</h4>
+           <p class="text-sm text-gray-700 leading-relaxed mb-3">We aggregate real-time data from multiple official and trusted sources through secure API connections to provide comprehensive property verification:</p>
+           <ul class="text-sm text-gray-700 space-y-2">
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Dubai Land Department (DLD) API:</strong> Live title deeds, ownership records, transaction history</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Dubai Municipality API:</strong> Real-time building permits, planning approvals, compliance records</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>DEWA API (Dubai Electricity &amp; Water Authority):</strong> Current utilities connection status</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Dubai Civil Defence API:</strong> Safety compliance and fire safety certificates</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Environmental Agency - Abu Dhabi (EAD) API:</strong> Environmental impact assessments</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>UAE Central Bank API:</strong> Mortgage and lien verification</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Federal Tax Authority (FTA) API:</strong> Tax compliance status</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Insurance Authority API:</strong> Property insurance verification</span></li>
+            <li class="flex items-start gap-2"><span class="text-green-600 font-bold">✓</span> <span><strong>Satellite &amp; GIS Data APIs:</strong> Boundary verification, flood risk mapping</span></li>
+           </ul>
+           <div class="mt-4 p-3 bg-green-100 rounded-lg border border-green-300">
+            <p class="text-xs text-green-900 font-semibold">✓ ALL APIS AVAILABLE &amp; OPERATIONAL</p>
+            <p class="text-xs text-green-800 mt-1">All data sources are connected via secure, official APIs providing real-time verification. Our system ensures accuracy, legal compliance, and data integrity through direct government and authorized agency integrations. Blockchain technology provides immutable verification records.</p>
+           </div>
+          </div>
+         </div>
+        </div><button type="submit" id="verify-submit-button" class="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-5 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105 transform"> <span class="flex items-center justify-center gap-3">
+          <svg class="w-6 h-6" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg> Start Verification Process </span> </button>
+       </div>
+      </form>
+     </div><!-- Sample Data Section -->
+     <div id="sample-data-section-verify" class="text-center mt-12">
+      <div class="bg-white rounded-xl p-8 shadow-lg inline-block">
+       <p class="text-gray-700 mb-4 font-semibold">Explore Sample Property Data</p>
+       <div class="flex gap-4 justify-center"><button id="view-sample-data-btn" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl hover:scale-105 transform"> View Sample Data </button> <button id="download-sample-data-btn" class="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-8 py-4 rounded-xl font-bold hover:from-purple-700 hover:to-purple-900 transition-all shadow-lg hover:shadow-xl hover:scale-105 transform"> Download Sample CSV </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section><!-- Properties Page -->
+   <section id="page-properties" class="page-section py-16 px-6 bg-gradient-to-br from-gray-50 to-blue-50">
+    <div class="max-w-7xl mx-auto">
+     <div class="flex justify-between items-center mb-8">
+      <div>
+       <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">My Properties</h2>
+       <p class="text-gray-600 text-lg">View and manage your verified properties</p>
+      </div><button id="verify-new-btn" class="hidden lg:block bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl"> + Add Property </button>
+     </div><!-- Search -->
+     <div class="mb-8">
+      <div class="relative">
+       <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+       </svg><input type="text" id="search-properties" placeholder="Search by property ID or address..." class="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-gray-800 font-medium transition-all shadow-sm">
+      </div>
+     </div><!-- Properties List -->
+     <div id="properties-list" class="space-y-4"><!-- Properties will be populated here -->
+     </div>
+     <div id="empty-properties" class="text-center py-20 text-gray-500 bg-white rounded-2xl shadow-xl">
+      <div class="max-w-md mx-auto px-6">
+       <div class="w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+       </div>
+       <h3 class="text-2xl font-bold text-gray-900 mb-3">No properties yet</h3>
+       <p class="text-gray-600 mb-8 leading-relaxed">Start by verifying your first property to unlock comprehensive reports and blockchain certificates</p><button id="go-to-verify" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl hover:scale-105 transform"> Verify Your First Property </button>
+      </div>
+     </div>
+    </div>
+   </section><!-- Property Detail Modal -->
+   <div id="property-modal" class="modal">
+    <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90%] overflow-y-auto">
+     <div class="p-8">
+      <div class="flex justify-between items-start mb-8">
+       <div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-2" id="modal-property-title">Property Verification Report</h2>
+        <p class="text-gray-600" id="modal-property-id-display">Property ID</p>
+       </div><button id="close-property-modal" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">×</button>
+      </div>
+      <div class="space-y-8"><!-- Trust Score Summary -->
+       <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl flex items-center justify-between">
+        <div class="flex-1">
+         <h3 class="text-lg font-semibold text-gray-900 mb-1">Overall Trust Score</h3>
+         <p class="text-gray-600 text-sm" id="modal-address">Property Address</p>
+        </div>
+        <div class="trust-score-circle high" id="modal-trust-score-circle"><span id="modal-trust-score">0</span>
+        </div>
+       </div><!-- Trust Score Calculation Breakdown -->
+       <div class="border-2 border-blue-200 rounded-xl overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
+         <h3 class="text-xl font-bold flex items-center gap-2">
+          <svg class="w-6 h-6" fill="currentColor" viewbox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /> <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg> How We Calculated Your Trust Score</h3>
+         <p class="text-blue-100 text-sm mt-1">Detailed breakdown of all verification components and their contribution to the final score</p>
+        </div>
+        <div class="p-6 bg-white">
+         <div class="space-y-6"><!-- Legal & Ownership (30%) -->
+          <div class="border-l-4 border-green-500 pl-4">
+           <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-bold text-gray-900">Legal &amp; Ownership Verification</h4>
+            <div class="text-right">
+             <div class="text-2xl font-bold text-green-600" id="score-legal">
+              0
+             </div>
+             <div class="text-xs text-gray-600">
+              out of 30 points
+             </div>
+            </div>
+           </div>
+           <div class="text-sm text-gray-600 mb-3">
+            Weight: 30% of total score
+           </div>
+           <div class="space-y-2">
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-title-deed"><span class="text-sm text-gray-700">Title Deed Verification</span> <span class="text-sm font-semibold text-gray-900">8/8</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-ownership"><span class="text-sm text-gray-700">Ownership Status</span> <span class="text-sm font-semibold text-gray-900">8/8</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-legal-clearance"><span class="text-sm text-gray-700">Legal Clearance</span> <span class="text-sm font-semibold text-gray-900">7/7</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-mortgage"><span class="text-sm text-gray-700">Mortgage &amp; Liens Check</span> <span class="text-sm font-semibold text-gray-900">7/7</span>
+            </div>
+           </div>
+          </div><!-- Compliance & Regulations (25%) -->
+          <div class="border-l-4 border-blue-500 pl-4">
+           <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-bold text-gray-900">Compliance &amp; Regulations</h4>
+            <div class="text-right">
+             <div class="text-2xl font-bold text-blue-600" id="score-compliance">
+              0
+             </div>
+             <div class="text-xs text-gray-600">
+              out of 25 points
+             </div>
+            </div>
+           </div>
+           <div class="text-sm text-gray-600 mb-3">
+            Weight: 25% of total score
+           </div>
+           <div class="space-y-2">
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-planning"><span class="text-sm text-gray-700">Planning Permission</span> <span class="text-sm font-semibold text-gray-900">7/7</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-building"><span class="text-sm text-gray-700">Building Regulations</span> <span class="text-sm font-semibold text-gray-900">6/6</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-local-authority"><span class="text-sm text-gray-700">Local Authority Approval</span> <span class="text-sm font-semibold text-gray-900">6/6</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-tax"><span class="text-sm text-gray-700">Tax Compliance</span> <span class="text-sm font-semibold text-gray-900">6/6</span>
+            </div>
+           </div>
+          </div><!-- Environmental & Safety (20%) -->
+          <div class="border-l-4 border-purple-500 pl-4">
+           <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-bold text-gray-900">Environmental &amp; Safety</h4>
+            <div class="text-right">
+             <div class="text-2xl font-bold text-purple-600" id="score-environmental">
+              0
+             </div>
+             <div class="text-xs text-gray-600">
+              out of 20 points
+             </div>
+            </div>
+           </div>
+           <div class="text-sm text-gray-600 mb-3">
+            Weight: 20% of total score
+           </div>
+           <div class="space-y-2">
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-environmental"><span class="text-sm text-gray-700">Environmental Check</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-flood"><span class="text-sm text-gray-700">Flood Risk Assessment</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-contamination"><span class="text-sm text-gray-700">Contamination Screening</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-insurance"><span class="text-sm text-gray-700">Insurance Status</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+           </div>
+          </div><!-- Physical & Infrastructure (15%) -->
+          <div class="border-l-4 border-yellow-500 pl-4">
+           <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-bold text-gray-900">Physical &amp; Infrastructure</h4>
+            <div class="text-right">
+             <div class="text-2xl font-bold text-yellow-600" id="score-physical">
+              0
+             </div>
+             <div class="text-xs text-gray-600">
+              out of 15 points
+             </div>
+            </div>
+           </div>
+           <div class="text-sm text-gray-600 mb-3">
+            Weight: 15% of total score
+           </div>
+           <div class="space-y-2">
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-boundary"><span class="text-sm text-gray-700">Boundary Verification</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-utilities"><span class="text-sm text-gray-700">Utilities Connection</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-access"><span class="text-sm text-gray-700">Access Rights</span> <span class="text-sm font-semibold text-gray-900">5/5</span>
+            </div>
+           </div>
+          </div><!-- Restrictions & Encumbrances (10%) -->
+          <div class="border-l-4 border-red-500 pl-4">
+           <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-bold text-gray-900">Restrictions &amp; Encumbrances</h4>
+            <div class="text-right">
+             <div class="text-2xl font-bold text-red-600" id="score-restrictions">
+              0
+             </div>
+             <div class="text-xs text-gray-600">
+              out of 10 points
+             </div>
+            </div>
+           </div>
+           <div class="text-sm text-gray-600 mb-3">
+            Weight: 10% of total score
+           </div>
+           <div class="space-y-2">
+            <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded" id="breakdown-restrictions"><span class="text-sm text-gray-700">Property Restrictions</span> <span class="text-sm font-semibold text-gray-900">10/10</span>
+            </div>
+           </div>
+          </div><!-- Final Calculation -->
+          <div class="border-t-2 border-gray-200 pt-6 mt-6">
+           <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+            <div class="flex justify-between items-center mb-4">
+             <h4 class="text-xl font-bold text-gray-900">Final Trust Score Calculation</h4>
+             <div class="text-right">
+              <div class="text-4xl font-bold text-blue-600" id="score-final-breakdown">
+               0
+              </div>
+              <div class="text-sm text-gray-600">
+               out of 100
+              </div>
+             </div>
+            </div>
+            <div class="space-y-2 text-sm text-gray-700">
+             <div class="flex justify-between py-2 border-b border-gray-200"><span>Legal &amp; Ownership (30%)</span> <span class="font-semibold" id="calc-legal">0 points</span>
+             </div>
+             <div class="flex justify-between py-2 border-b border-gray-200"><span>Compliance &amp; Regulations (25%)</span> <span class="font-semibold" id="calc-compliance">0 points</span>
+             </div>
+             <div class="flex justify-between py-2 border-b border-gray-200"><span>Environmental &amp; Safety (20%)</span> <span class="font-semibold" id="calc-environmental">0 points</span>
+             </div>
+             <div class="flex justify-between py-2 border-b border-gray-200"><span>Physical &amp; Infrastructure (15%)</span> <span class="font-semibold" id="calc-physical">0 points</span>
+             </div>
+             <div class="flex justify-between py-2 border-b border-gray-200"><span>Restrictions &amp; Encumbrances (10%)</span> <span class="font-semibold" id="calc-restrictions">0 points</span>
+             </div>
+             <div class="flex justify-between py-3 bg-white rounded-lg px-4 mt-3 font-bold text-lg border-2 border-blue-300"><span class="text-gray-900">Total Score</span> <span class="text-blue-600" id="calc-total">0/100</span>
+             </div>
+            </div>
+            <div class="mt-4 p-4 bg-blue-100 rounded-lg border border-blue-300">
+             <p class="text-sm text-blue-900"><strong>Scoring Method:</strong> Each verification component is assigned points based on its importance. The weighted sum of all components produces the final trust score from 0-100. Scores above 90 indicate excellent property status, 70-89 indicate good status, and below 70 may require attention.</p>
+            </div>
+           </div>
+          </div>
+         </div>
+        </div>
+       </div><!-- Property Summary -->
+       <div class="grid md:grid-cols-3 gap-4">
+        <div class="data-row flex-col items-start !border-b-0"><span class="data-label">Property Type</span> <span class="data-value" id="modal-type">N/A</span>
+        </div>
+        <div class="data-row flex-col items-start !border-b-0"><span class="data-label">Area</span> <span class="data-value" id="modal-area">N/A</span>
+        </div>
+        <div class="data-row flex-col items-start !border-b-0"><span class="data-label">Owner</span> <span class="data-value" id="modal-owner">N/A</span>
+        </div>
+        <div class="data-row flex-col items-start !border-b-0"><span class="data-label">Property Value</span> <span class="data-value" id="modal-value">N/A</span>
+        </div>
+       </div><!-- Verification Steps -->
+       <div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-6">Detailed Verification Analysis</h3><!-- Step 1: Property Identification -->
+        <div class="verification-step">
+         <div class="flex items-start gap-4">
+          <div class="step-number">
+           1
+          </div>
+          <div class="flex-1">
+           <h4 class="text-lg font-bold text-gray-900 mb-3">Property Identification &amp; Title</h4>
+           <div class="space-y-3">
+            <div class="verification-item pass" id="check-title-deed"><span class="font-medium text-gray-700">Title Deed Verification</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-ownership"><span class="font-medium text-gray-700">Ownership Status</span> <span class="status-badge status-verified">Verified ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-boundary"><span class="font-medium text-gray-700">Boundary Verification</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+           </div>
+           <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800"><strong>Analysis:</strong> Property title is clear and verified. Ownership records match Dubai Land Department database. Boundaries are accurately defined and documented.</p>
+           </div>
+          </div>
+         </div>
+        </div><!-- Step 2: Legal & Compliance -->
+        <div class="verification-step">
+         <div class="flex items-start gap-4">
+          <div class="step-number">
+           2
+          </div>
+          <div class="flex-1">
+           <h4 class="text-lg font-bold text-gray-900 mb-3">Legal Compliance &amp; Clearances</h4>
+           <div class="space-y-3">
+            <div class="verification-item pass" id="check-legal"><span class="font-medium text-gray-700">Legal Clearance Certificate</span> <span class="status-badge status-verified">Clear ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-mortgage"><span class="font-medium text-gray-700">Mortgage &amp; Liens Check</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-restrictions"><span class="font-medium text-gray-700">Restrictions &amp; Covenants</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-tax"><span class="font-medium text-gray-700">Tax Compliance Status</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+           </div>
+           <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800"><strong>Analysis:</strong> No outstanding legal issues. All taxes and fees are up to date. No liens or encumbrances detected. Property is free to transfer.</p>
+           </div>
+          </div>
+         </div>
+        </div><!-- Step 3: Planning & Building -->
+        <div class="verification-step">
+         <div class="flex items-start gap-4">
+          <div class="step-number">
+           3
+          </div>
+          <div class="flex-1">
+           <h4 class="text-lg font-bold text-gray-900 mb-3">Planning &amp; Building Regulations</h4>
+           <div class="space-y-3">
+            <div class="verification-item pass" id="check-planning"><span class="font-medium text-gray-700">Planning Permission</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-building"><span class="font-medium text-gray-700">Building Regulations Compliance</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-authority"><span class="font-medium text-gray-700">Local Authority Approval</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-utilities"><span class="font-medium text-gray-700">Utilities Connection</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+           </div>
+           <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800"><strong>Analysis:</strong> All planning permissions granted. Building complies with Dubai Municipality regulations. Utilities properly connected and functioning.</p>
+           </div>
+          </div>
+         </div>
+        </div><!-- Step 4: Environmental Assessment -->
+        <div class="verification-step">
+         <div class="flex items-start gap-4">
+          <div class="step-number">
+           4
+          </div>
+          <div class="flex-1">
+           <h4 class="text-lg font-bold text-gray-900 mb-3">Environmental &amp; Safety Assessment</h4>
+           <div class="space-y-3">
+            <div class="verification-item pass" id="check-environmental"><span class="font-medium text-gray-700">Environmental Impact Check</span> <span class="status-badge status-verified">Pass ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-flood"><span class="font-medium text-gray-700">Flood Risk Assessment</span> <span class="status-badge status-verified">Low Risk ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-contamination"><span class="font-medium text-gray-700">Contamination Screening</span> <span class="status-badge status-verified">Clear ✓</span>
+            </div>
+            <div class="verification-item pass" id="check-insurance"><span class="font-medium text-gray-700">Insurance Status</span> <span class="status-badge status-verified">Active ✓</span>
+            </div>
+           </div>
+           <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800"><strong>Analysis:</strong> Property passes all environmental checks. Low flood risk zone. No contamination detected. Insurance coverage is current and adequate.</p>
+           </div>
+          </div>
+         </div>
+        </div><!-- Step 5: Access & Rights -->
+        <div class="verification-step">
+         <div class="flex items-start gap-4">
+          <div class="step-number">
+           5
+          </div>
+          <div class="flex-1">
+           <h4 class="text-lg font-bold text-gray-900 mb-3">Access Rights &amp; Usage</h4>
+           <div class="space-y-3">
+            <div class="verification-item pass" id="check-access"><span class="font-medium text-gray-700">Access Rights Confirmation</span> <span class="status-badge status-verified">Confirmed ✓</span>
+            </div>
+           </div>
+           <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-800"><strong>Analysis:</strong> All access rights confirmed. Clear vehicular and pedestrian access. No right-of-way disputes or complications.</p>
+           </div>
+          </div>
+         </div>
+        </div><!-- Overall Completion -->
+        <div class="mt-8 bg-gradient-to-r from-green-50 to-blue-50 p-8 rounded-2xl border-2 border-green-200">
+         <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div class="flex-1">
+           <h4 class="text-2xl font-bold text-gray-900 mb-2">Verification Complete</h4>
+           <p class="text-gray-700 mb-4">All verification checks have been successfully completed. This property meets all requirements for secure transaction.</p>
+           <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg><span class="text-green-800 font-semibold" id="completion-summary">0 of 0 checks passed</span>
+           </div>
+          </div>
+          <div class="text-center">
+           <div class="inline-flex flex-col items-center justify-center w-32 h-32 rounded-full bg-white border-8" id="score-ring-border" style="border-color: #10b981;">
+            <div class="text-5xl font-bold text-green-600" id="final-trust-score">
+             0
+            </div>
+            <div class="text-sm text-gray-600 font-semibold">
+             Trust Score
+            </div>
+           </div>
+           <div class="mt-3"><span class="inline-block px-4 py-2 bg-green-600 text-white rounded-full text-sm font-bold" id="trust-level">Excellent</span>
+           </div>
+          </div>
+         </div>
+        </div>
+       </div><!-- Blockchain Details -->
+       <div class="border-b pb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Blockchain Verification</h3>
+        <div class="grid md:grid-cols-2 gap-4">
+         <div class="bg-gray-50 p-4 rounded-lg">
+          <div class="text-sm text-gray-600 mb-1">
+           Blockchain ID
+          </div>
+          <div class="font-semibold text-gray-800 text-sm break-all" id="modal-blockchain">
+           N/A
+          </div>
+         </div>
+         <div class="bg-gray-50 p-4 rounded-lg">
+          <div class="text-sm text-gray-600 mb-1">
+           Verification Date
+          </div>
+          <div class="font-semibold text-gray-800" id="modal-verify-date">
+           N/A
+          </div>
+         </div>
+        </div>
+       </div><!-- Actions -->
+       <div class="flex gap-4"><button id="modal-download-cert" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"> Download Certificate </button> <button id="modal-share" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"> Share Report </button> <button id="modal-delete" class="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"> Delete </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div><!-- Footer -->
+   <footer class="bg-gray-900 text-white py-12 px-6">
+    <div class="max-w-6xl mx-auto text-center">
+     <p id="footer-text" class="text-gray-400">© 2024 ASSETRAZ. Securing UAE Real Estate with Blockchain Technology.</p>
+    </div>
+   </footer>
+  </main>
+  <script>
+    const defaultConfig = {
+      background_color: "#667eea",
+      surface_color: "#ffffff",
+      text_color: "#1f2937",
+      primary_action_color: "#7c3aed",
+      secondary_action_color: "#3b82f6",
+      font_family: "system-ui, -apple-system, sans-serif",
+      font_size: 16,
+      main_headline: "Secure Property Verification for UAE",
+      hero_subheadline: "Blockchain-powered trust scores and instant verification certificates",
+      cta_button_text: "Start Verification",
+      features_title: "Why Choose AssetRaz?",
+      trust_score_title: "AI-Powered Trust Scores",
+      trust_score_desc: "Advanced algorithms analyze property history, ownership, and legal status to generate transparent trust scores",
+      blockchain_title: "Blockchain Certificates",
+      blockchain_desc: "Immutable verification certificates stored on blockchain ensure authenticity and prevent fraud",
+      verification_title: "Instant Verification",
+      verification_desc: "Get real-time property verification results in seconds with comprehensive reports and documentation",
+      footer_text: "© 2024 ASSETRAZ. Securing UAE Real Estate with Blockchain Technology."
+    };
+
+    let allProperties = [];
+    let currentProperty = null;
+
+    async function onConfigChange(config) {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = 'system-ui, -apple-system, sans-serif';
+
+      // Apply colors
+      const gradientBg = document.querySelector('.gradient-bg');
+      if (gradientBg) {
+        gradientBg.style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.primary_action_color || defaultConfig.primary_action_color} 100%)`;
+      }
+
+      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+
+      // Update text content
+      document.getElementById('main-headline').textContent = config.main_headline || defaultConfig.main_headline;
+      document.getElementById('hero-subheadline').textContent = config.hero_subheadline || defaultConfig.hero_subheadline;
+      document.getElementById('cta-button').textContent = config.cta_button_text || defaultConfig.cta_button_text;
+      document.getElementById('features-title').textContent = config.features_title || defaultConfig.features_title;
+      document.getElementById('trust-score-title').textContent = config.trust_score_title || defaultConfig.trust_score_title;
+      document.getElementById('trust-score-desc').textContent = config.trust_score_desc || defaultConfig.trust_score_desc;
+      document.getElementById('blockchain-title').textContent = config.blockchain_title || defaultConfig.blockchain_title;
+      document.getElementById('blockchain-desc').textContent = config.blockchain_desc || defaultConfig.blockchain_desc;
+      document.getElementById('verification-title').textContent = config.verification_title || defaultConfig.verification_title;
+      document.getElementById('verification-desc').textContent = config.verification_desc || defaultConfig.verification_desc;
+      document.getElementById('footer-text').textContent = config.footer_text || defaultConfig.footer_text;
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (value) => {
+              config.surface_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ surface_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.primary_action_color || defaultConfig.primary_action_color,
+            set: (value) => {
+              config.primary_action_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ primary_action_color: value });
+            }
+          },
+          {
+            get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (value) => {
+              config.secondary_action_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ secondary_action_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || defaultConfig.font_family,
+          set: (value) => {
+            config.font_family = value;
+            if (window.elementSdk) window.elementSdk.setConfig({ font_family: value });
+          }
+        },
+        fontSizeable: {
+          get: () => config.font_size || defaultConfig.font_size,
+          set: (value) => {
+            config.font_size = value;
+            if (window.elementSdk) window.elementSdk.setConfig({ font_size: value });
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["main_headline", config.main_headline || defaultConfig.main_headline],
+        ["hero_subheadline", config.hero_subheadline || defaultConfig.hero_subheadline],
+        ["cta_button_text", config.cta_button_text || defaultConfig.cta_button_text],
+        ["features_title", config.features_title || defaultConfig.features_title],
+        ["trust_score_title", config.trust_score_title || defaultConfig.trust_score_title],
+        ["trust_score_desc", config.trust_score_desc || defaultConfig.trust_score_desc],
+        ["blockchain_title", config.blockchain_title || defaultConfig.blockchain_title],
+        ["blockchain_desc", config.blockchain_desc || defaultConfig.blockchain_desc],
+        ["verification_title", config.verification_title || defaultConfig.verification_title],
+        ["verification_desc", config.verification_desc || defaultConfig.verification_desc],
+        ["footer_text", config.footer_text || defaultConfig.footer_text]
+      ]);
+    }
+
+    // Initialize Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    // Data SDK Handler
+    const dataHandler = {
+      onDataChanged(data) {
+        allProperties = data;
+        updateDashboardStats();
+        renderPropertiesGrid();
+      }
+    };
+
+    // Initialize Data SDK
+    (async () => {
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize Data SDK');
+        }
+      }
+    })();
+
+    // Helper Functions
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${isError ? 'error' : ''}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function generateBlockchainId() {
+      return '0x' + Math.random().toString(16).substr(2, 8) + '...' + Math.random().toString(16).substr(2, 4);
+    }
+
+    function generateRandomCheckStatus() {
+      const statuses = ['Pass ✓', 'Pass ✓', 'Pass ✓', 'Warning ⚠', 'Pass ✓'];
+      return statuses[Math.floor(Math.random() * statuses.length)];
+    }
+
+    function generateRandomData() {
+      const owners = [
+        'Ahmed Al Maktoum',
+        'Fatima Al Nahyan',
+        'Mohammed Al Falasi',
+        'Sarah Al Suwaidi',
+        'Khalid Al Mansoori',
+        'Noura Al Mazrouei',
+        'Omar Al Dhaheri',
+        'Layla Al Kaabi'
+      ];
+
+      return {
+        trust_score: Math.floor(Math.random() * 30) + 70,
+        owner_name: owners[Math.floor(Math.random() * owners.length)],
+        registration_year: String(Math.floor(Math.random() * 5) + 2019),
+        last_transaction_date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        property_value: Math.floor(Math.random() * 4000000) + 500000,
+        latitude: 25.0 + Math.random() * 0.4,
+        longitude: 55.1 + Math.random() * 0.3,
+        title_deed_check: generateRandomCheckStatus(),
+        boundary_verification: generateRandomCheckStatus(),
+        planning_permission: generateRandomCheckStatus(),
+        building_regulations: generateRandomCheckStatus(),
+        environmental_check: generateRandomCheckStatus(),
+        flood_risk: generateRandomCheckStatus(),
+        contamination: generateRandomCheckStatus(),
+        utilities_check: generateRandomCheckStatus(),
+        access_rights: generateRandomCheckStatus(),
+        restrictions: generateRandomCheckStatus(),
+        mortgage_check: generateRandomCheckStatus(),
+        local_authority: generateRandomCheckStatus(),
+        tax_compliance: generateRandomCheckStatus(),
+        insurance_status: generateRandomCheckStatus()
+      };
+    }
+
+    // Sample Properties Data
+    const sampleProperties = [
+      {
+        property_id: 'DXB-2024-0001',
+        property_address: 'Marina Heights Tower, Dubai Marina',
+        trust_score: 95,
+        owner_name: 'Ahmed Al Maktoum',
+        property_type: 'Apartment',
+        area_sqft: 1850,
+        registration_year: '2020',
+        property_value: 1250000,
+        latitude: 25.0769,
+        longitude: 55.1413,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0002',
+        property_address: 'Burj Khalifa Residence, Downtown Dubai',
+        trust_score: 98,
+        owner_name: 'Fatima Al Nahyan',
+        property_type: 'Penthouse',
+        area_sqft: 3200,
+        registration_year: '2019',
+        property_value: 4800000,
+        latitude: 25.1972,
+        longitude: 55.2744,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0003',
+        property_address: 'Palm Jumeirah Villa, Palm Jumeirah',
+        trust_score: 92,
+        owner_name: 'Mohammed Al Falasi',
+        property_type: 'Villa',
+        area_sqft: 4500,
+        registration_year: '2021',
+        property_value: 6200000,
+        latitude: 25.1124,
+        longitude: 55.1390,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'Minor ⚠',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0004',
+        property_address: 'Business Bay Tower, Business Bay',
+        trust_score: 88,
+        owner_name: 'Sarah Al Suwaidi',
+        property_type: 'Commercial',
+        area_sqft: 2100,
+        registration_year: '2022',
+        property_value: 1800000,
+        latitude: 25.1875,
+        longitude: 55.2644,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Medium ⚠',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'Commercial Use ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0005',
+        property_address: 'Arabian Ranches Villa, Arabian Ranches',
+        trust_score: 91,
+        owner_name: 'Khalid Al Mansoori',
+        property_type: 'Villa',
+        area_sqft: 3800,
+        registration_year: '2020',
+        property_value: 3200000,
+        latitude: 25.0514,
+        longitude: 55.2708,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0006',
+        property_address: 'JBR Beachfront Apartment, JBR',
+        trust_score: 94,
+        owner_name: 'Noura Al Mazrouei',
+        property_type: 'Apartment',
+        area_sqft: 1650,
+        registration_year: '2021',
+        property_value: 2100000,
+        latitude: 25.0780,
+        longitude: 55.1350,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0007',
+        property_address: 'Emirates Hills Villa, Emirates Hills',
+        trust_score: 97,
+        owner_name: 'Omar Al Dhaheri',
+        property_type: 'Villa',
+        area_sqft: 5200,
+        registration_year: '2019',
+        property_value: 8500000,
+        latitude: 25.0619,
+        longitude: 55.1830,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0008',
+        property_address: 'DIFC Penthouse, DIFC',
+        trust_score: 96,
+        owner_name: 'Layla Al Kaabi',
+        property_type: 'Penthouse',
+        area_sqft: 2800,
+        registration_year: '2023',
+        property_value: 5400000,
+        latitude: 25.2138,
+        longitude: 55.2802,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0009',
+        property_address: 'Silicon Oasis Townhouse, Dubai Silicon Oasis',
+        trust_score: 85,
+        owner_name: 'Ahmed Al Maktoum',
+        property_type: 'Townhouse',
+        area_sqft: 2200,
+        registration_year: '2022',
+        property_value: 1450000,
+        latitude: 25.1167,
+        longitude: 55.3833,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Review Needed ⚠',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'HOA Rules ⚠',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      },
+      {
+        property_id: 'DXB-2024-0010',
+        property_address: 'Jumeirah Beach Residence, Jumeirah',
+        trust_score: 93,
+        owner_name: 'Fatima Al Nahyan',
+        property_type: 'Apartment',
+        area_sqft: 1950,
+        registration_year: '2021',
+        property_value: 1850000,
+        latitude: 25.0800,
+        longitude: 55.1320,
+        title_deed_check: 'Verified ✓',
+        boundary_verification: 'Pass ✓',
+        planning_permission: 'Approved ✓',
+        building_regulations: 'Compliant ✓',
+        environmental_check: 'Clear ✓',
+        flood_risk: 'Low Risk ✓',
+        contamination: 'Clear ✓',
+        utilities_check: 'Connected ✓',
+        access_rights: 'Confirmed ✓',
+        restrictions: 'None ✓',
+        mortgage_check: 'Clear ✓',
+        local_authority: 'Approved ✓',
+        tax_compliance: 'Current ✓',
+        insurance_status: 'Active ✓'
+      }
+    ];
+
+    // Navigation
+    function switchPage(pageId) {
+      document.querySelectorAll('.page-section').forEach(page => page.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      
+      document.querySelectorAll('.nav-tab').forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      const activeNav = document.querySelector(`[id="${pageId.replace('page-', 'nav-')}"]`);
+      if (activeNav) {
+        activeNav.classList.add('active');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('logo-home-btn').addEventListener('click', () => switchPage('page-home'));
+    document.getElementById('nav-home').addEventListener('click', () => switchPage('page-home'));
+    document.getElementById('nav-verify').addEventListener('click', () => switchPage('page-verify'));
+    document.getElementById('nav-properties').addEventListener('click', () => switchPage('page-properties'));
+
+    document.getElementById('cta-button').addEventListener('click', () => switchPage('page-verify'));
+
+    const goToVerifyBtn = document.getElementById('go-to-verify');
+    if (goToVerifyBtn) {
+      goToVerifyBtn.addEventListener('click', () => switchPage('page-verify'));
+    }
+
+    const verifyNewBtn = document.getElementById('verify-new-btn');
+    if (verifyNewBtn) {
+      verifyNewBtn.addEventListener('click', () => switchPage('page-verify'));
+    }
+
+    // View Sample Data Button
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'view-sample-data-btn') {
+        // Create a modal to display sample data
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+          <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90%] overflow-y-auto">
+            <div class="p-8">
+              <div class="flex justify-between items-start mb-6">
+                <div>
+                  <h2 class="text-3xl font-bold text-gray-900 mb-2">Sample Property Data</h2>
+                  <p class="text-gray-600">Preview of 10 sample properties from UAE</p>
+                </div>
+                <button id="close-sample-modal" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Property ID</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Address</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Type</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Area (sqft)</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Trust Score</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Value</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    ${sampleProperties.map((prop, index) => `
+                      <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-900">${prop.property_id}</td>
+                        <td class="px-4 py-3 text-gray-700">${prop.property_address}</td>
+                        <td class="px-4 py-3 text-gray-700">${prop.property_type}</td>
+                        <td class="px-4 py-3 text-gray-700">${prop.area_sqft}</td>
+                        <td class="px-4 py-3">
+                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${prop.trust_score >= 90 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${prop.trust_score}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-700">$${(prop.property_value / 1000).toFixed(0)}K</td>
+                        <td class="px-4 py-3">
+                          <button class="view-sample-report-btn bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-blue-700" data-index="${index}">
+                            View Report
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-sm text-blue-800 mb-3">
+                  <strong>Note:</strong> This is sample data for demonstration purposes. You can view individual property reports or download all data as CSV.
+                </p>
+                <div class="flex gap-3 justify-center">
+                  <button id="download-all-reports-btn" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 text-sm">
+                    Download All Reports (ZIP)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('#close-sample-modal').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) this.remove();
+        });
+
+        // Add event listeners for view report buttons
+        modal.querySelectorAll('.view-sample-report-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            const property = sampleProperties[index];
+            
+            // Add required fields for modal display
+            const fullProperty = {
+              ...property,
+              __backendId: `sample_${index}`,
+              blockchain_id: generateBlockchainId(),
+              verification_date: new Date().toISOString(),
+              ownership_status: 'Verified ✓',
+              legal_clearance: 'Clear ✓',
+              last_transaction_date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            };
+            
+            modal.remove();
+            currentProperty = fullProperty;
+            openPropertyModal(fullProperty);
+          });
+        });
+
+        // Add event listener for download all reports button
+        const downloadAllBtn = modal.querySelector('#download-all-reports-btn');
+        if (downloadAllBtn) {
+          downloadAllBtn.addEventListener('click', function() {
+            showToast('Preparing reports for download...');
+            
+            // Generate reports for all properties
+            const reports = sampleProperties.map(prop => {
+              const fullProp = {
+                ...prop,
+                blockchain_id: generateBlockchainId(),
+                verification_date: new Date().toISOString(),
+                ownership_status: 'Verified ✓',
+                legal_clearance: 'Clear ✓'
+              };
+              
+              return generateCertificateText(fullProp);
+            });
+            
+            // Create a combined file with all reports
+            const combinedReport = reports.join('\n\n' + '='.repeat(80) + '\n\n');
+            const blob = new Blob([combinedReport], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ASSETRAZ_All_Sample_Reports_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showToast('All reports downloaded successfully!');
+          });
+        }
+      }
+    });
+
+    // Download Sample Data Button
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'download-sample-data-btn') {
+        // Create CSV content
+        const headers = [
+          'Property ID',
+          'Property Address',
+          'Property Type',
+          'Area (sqft)',
+          'Trust Score',
+          'Owner Name',
+          'Registration Year',
+          'Property Value',
+          'Title Deed Check',
+          'Ownership Status',
+          'Legal Clearance',
+          'Boundary Verification',
+          'Planning Permission',
+          'Building Regulations',
+          'Environmental Check',
+          'Flood Risk',
+          'Contamination',
+          'Utilities Check',
+          'Access Rights',
+          'Restrictions',
+          'Mortgage Check',
+          'Local Authority',
+          'Tax Compliance',
+          'Insurance Status'
+        ];
+
+        const csvRows = [headers.join(',')];
+
+        sampleProperties.forEach(prop => {
+          const row = [
+            prop.property_id,
+            `"${prop.property_address}"`,
+            prop.property_type,
+            prop.area_sqft,
+            prop.trust_score,
+            `"${prop.owner_name}"`,
+            prop.registration_year,
+            prop.property_value,
+            `"${prop.title_deed_check}"`,
+            '"Verified ✓"',
+            '"Clear ✓"',
+            `"${prop.boundary_verification}"`,
+            `"${prop.planning_permission}"`,
+            `"${prop.building_regulations}"`,
+            `"${prop.environmental_check}"`,
+            `"${prop.flood_risk}"`,
+            `"${prop.contamination}"`,
+            `"${prop.utilities_check}"`,
+            `"${prop.access_rights}"`,
+            `"${prop.restrictions}"`,
+            `"${prop.mortgage_check}"`,
+            `"${prop.local_authority}"`,
+            `"${prop.tax_compliance}"`,
+            `"${prop.insurance_status}"`
+          ];
+          csvRows.push(row.join(','));
+        });
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ASSETRAZ_Sample_Properties_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showToast('Sample data CSV downloaded successfully!');
+      }
+    });
+
+    // Property Verify Form
+    document.getElementById('verify-property-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (allProperties.length >= 999) {
+        showToast('Maximum limit of 999 properties reached. Please delete some properties first.', true);
+        return;
+      }
+
+      const btn = document.getElementById('verify-submit-button');
+      const originalContent = btn.innerHTML;
+      btn.innerHTML = '<div class="spinner"></div>';
+      btn.disabled = true;
+
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const propertyId = document.getElementById('property-id-input').value;
+      const propertyAddress = document.getElementById('property-address-input').value;
+      const propertyType = document.getElementById('property-type-input').value;
+      const propertyArea = parseInt(document.getElementById('property-area-input').value);
+      const randomData = generateRandomData();
+      
+      const newProperty = {
+        property_id: propertyId,
+        property_address: propertyAddress,
+        trust_score: randomData.trust_score,
+        ownership_status: 'Verified ✓',
+        legal_clearance: 'Clear ✓',
+        registration_year: randomData.registration_year,
+        blockchain_id: generateBlockchainId(),
+        verification_date: new Date().toISOString(),
+        property_type: propertyType,
+        owner_name: randomData.owner_name,
+        area_sqft: propertyArea,
+        last_transaction_date: randomData.last_transaction_date,
+        property_value: randomData.property_value,
+        latitude: randomData.latitude,
+        longitude: randomData.longitude,
+        title_deed_check: randomData.title_deed_check,
+        boundary_verification: randomData.boundary_verification,
+        planning_permission: randomData.planning_permission,
+        building_regulations: randomData.building_regulations,
+        environmental_check: randomData.environmental_check,
+        flood_risk: randomData.flood_risk,
+        contamination: randomData.contamination,
+        utilities_check: randomData.utilities_check,
+        access_rights: randomData.access_rights,
+        restrictions: randomData.restrictions,
+        mortgage_check: randomData.mortgage_check,
+        local_authority: randomData.local_authority,
+        tax_compliance: randomData.tax_compliance,
+        insurance_status: randomData.insurance_status
+      };
+
+      const result = await window.dataSdk.create(newProperty);
+
+      if (result.isOk) {
+        showToast('Property verified and added successfully!');
+        document.getElementById('property-id-input').value = '';
+        document.getElementById('property-address-input').value = '';
+        document.getElementById('property-type-input').value = '';
+        document.getElementById('property-area-input').value = '';
+        switchPage('page-properties');
+      } else {
+        showToast('Failed to add property', true);
+      }
+
+      btn.innerHTML = originalContent;
+      btn.disabled = false;
+    });
+
+    // Update Dashboard Stats
+    function updateDashboardStats() {
+      const total = allProperties.length;
+      const verified = allProperties.filter(p => p.ownership_status === 'Verified ✓').length;
+      const avgScore = total > 0 ? Math.round(allProperties.reduce((sum, p) => sum + p.trust_score, 0) / total) : 0;
+
+      document.getElementById('total-properties').textContent = total;
+      document.getElementById('verified-properties').textContent = verified;
+      document.getElementById('avg-trust-score').textContent = avgScore;
+    }
+
+    // Render Properties List
+    function renderPropertiesGrid() {
+      const list = document.getElementById('properties-list');
+      const empty = document.getElementById('empty-properties');
+      const searchTerm = (document.getElementById('search-properties')?.value || '').toLowerCase();
+
+      let filtered = allProperties.filter(p => {
+        const matchesSearch = !searchTerm || 
+          (p.property_id || '').toLowerCase().includes(searchTerm) ||
+          (p.property_address || '').toLowerCase().includes(searchTerm) ||
+          (p.owner_name || '').toLowerCase().includes(searchTerm);
+
+        return matchesSearch;
+      });
+
+      if (filtered.length === 0 && allProperties.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+      } else if (filtered.length === 0) {
+        list.innerHTML = '<div class="text-center py-12 bg-white rounded-xl"><p class="text-gray-600">No properties match your search</p></div>';
+        empty.style.display = 'none';
+      } else {
+        empty.style.display = 'none';
+        list.innerHTML = filtered.map(p => `
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all border-l-4 ${p.trust_score >= 90 ? 'border-green-500' : p.trust_score >= 70 ? 'border-yellow-500' : 'border-red-500'}" data-id="${p.__backendId}">
+            <div class="p-6">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <!-- Property Info -->
+                <div class="flex-1">
+                  <div class="flex items-center gap-4 mb-3">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="text-xl font-bold text-gray-900">${p.property_id}</h3>
+                      <p class="text-gray-600">${p.property_address}</p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-3 mt-4">
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">${p.property_type}</span>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">${p.area_sqft} sqft</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">${p.ownership_status}</span>
+                  </div>
+                </div>
+                
+                <!-- Trust Score -->
+                <div class="flex flex-col items-center justify-center bg-gradient-to-br ${p.trust_score >= 90 ? 'from-green-50 to-green-100' : p.trust_score >= 70 ? 'from-yellow-50 to-yellow-100' : 'from-red-50 to-red-100'} rounded-xl p-6 min-w-[140px]">
+                  <div class="text-sm font-semibold text-gray-700 mb-1">Trust Score</div>
+                  <div class="text-5xl font-bold ${p.trust_score >= 90 ? 'text-green-600' : p.trust_score >= 70 ? 'text-yellow-600' : 'text-red-600'}">${p.trust_score}</div>
+                  <div class="text-xs text-gray-600 mt-1">${p.trust_score >= 90 ? 'Excellent' : p.trust_score >= 70 ? 'Good' : 'Fair'}</div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex flex-col gap-3">
+                  <button class="view-property-btn bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl whitespace-nowrap">
+                    View Full Report
+                  </button>
+                  <div class="text-center text-sm text-gray-500">
+                    Verified ${new Date(p.verification_date).toLocaleDateString('en-GB')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        list.querySelectorAll('.view-property-btn').forEach((btn, index) => {
+          btn.addEventListener('click', function() {
+            currentProperty = filtered[index];
+            openPropertyModal(currentProperty);
+          });
+        });
+      }
+    }
+
+    // Filters
+    document.getElementById('search-properties').addEventListener('input', renderPropertiesGrid);
+
+    // Open Property Modal
+    function openPropertyModal(property) {
+      const modal = document.getElementById('property-modal');
+      modal.classList.add('active');
+
+      document.getElementById('modal-property-title').textContent = property.property_id;
+      document.getElementById('modal-property-id-display').textContent = `Property ID: ${property.property_id}`;
+      document.getElementById('modal-address').textContent = property.property_address;
+      document.getElementById('modal-type').textContent = property.property_type;
+      document.getElementById('modal-area').textContent = `${property.area_sqft} sqft`;
+      document.getElementById('modal-owner').textContent = property.owner_name || 'N/A';
+      document.getElementById('modal-value').textContent = property.property_value ? `$${(property.property_value / 1000).toFixed(0)}K` : 'N/A';
+      document.getElementById('modal-blockchain').textContent = property.blockchain_id;
+      document.getElementById('modal-verify-date').textContent = new Date(property.verification_date).toLocaleDateString('en-GB');
+
+      const trustScore = property.trust_score;
+      const trustScoreCircle = document.getElementById('modal-trust-score-circle');
+      const modalTrustScore = document.getElementById('modal-trust-score');
+
+      trustScoreCircle.className = 'trust-score-circle';
+      if (trustScore >= 90) {
+        trustScoreCircle.classList.add('high');
+      } else if (trustScore >= 70) {
+        trustScoreCircle.classList.add('medium');
+      } else {
+        trustScoreCircle.classList.add('low');
+      }
+
+      modalTrustScore.textContent = trustScore;
+
+      // Calculate scores for each category
+      const legalScore = Math.min(30, Math.round((trustScore / 100) * 30));
+      const complianceScore = Math.min(25, Math.round((trustScore / 100) * 25));
+      const environmentalScore = Math.min(20, Math.round((trustScore / 100) * 20));
+      const physicalScore = Math.min(15, Math.round((trustScore / 100) * 15));
+      const restrictionsScore = Math.min(10, Math.round((trustScore / 100) * 10));
+
+      // Update category scores
+      document.getElementById('score-legal').textContent = legalScore;
+      document.getElementById('score-compliance').textContent = complianceScore;
+      document.getElementById('score-environmental').textContent = environmentalScore;
+      document.getElementById('score-physical').textContent = physicalScore;
+      document.getElementById('score-restrictions').textContent = restrictionsScore;
+
+      // Update breakdown items
+      updateBreakdownItem('breakdown-title-deed', property.title_deed_check, 8);
+      updateBreakdownItem('breakdown-ownership', property.ownership_status, 8);
+      updateBreakdownItem('breakdown-legal-clearance', property.legal_clearance, 7);
+      updateBreakdownItem('breakdown-mortgage', property.mortgage_check, 7);
+
+      updateBreakdownItem('breakdown-planning', property.planning_permission, 7);
+      updateBreakdownItem('breakdown-building', property.building_regulations, 6);
+      updateBreakdownItem('breakdown-local-authority', property.local_authority, 6);
+      updateBreakdownItem('breakdown-tax', property.tax_compliance, 6);
+
+      updateBreakdownItem('breakdown-environmental', property.environmental_check, 5);
+      updateBreakdownItem('breakdown-flood', property.flood_risk, 5);
+      updateBreakdownItem('breakdown-contamination', property.contamination, 5);
+      updateBreakdownItem('breakdown-insurance', property.insurance_status, 5);
+
+      updateBreakdownItem('breakdown-boundary', property.boundary_verification, 5);
+      updateBreakdownItem('breakdown-utilities', property.utilities_check, 5);
+      updateBreakdownItem('breakdown-access', property.access_rights, 5);
+
+      updateBreakdownItem('breakdown-restrictions', property.restrictions, 10);
+
+      // Update final calculation
+      document.getElementById('score-final-breakdown').textContent = trustScore;
+      document.getElementById('calc-legal').textContent = `${legalScore} points`;
+      document.getElementById('calc-compliance').textContent = `${complianceScore} points`;
+      document.getElementById('calc-environmental').textContent = `${environmentalScore} points`;
+      document.getElementById('calc-physical').textContent = `${physicalScore} points`;
+      document.getElementById('calc-restrictions').textContent = `${restrictionsScore} points`;
+      document.getElementById('calc-total').textContent = `${trustScore}/100`;
+
+      // Update verification checks
+      updateCheckStatus('check-title-deed', property.title_deed_check);
+      updateCheckStatus('check-ownership', property.ownership_status);
+      updateCheckStatus('check-boundary', property.boundary_verification);
+      updateCheckStatus('check-legal', property.legal_clearance);
+      updateCheckStatus('check-mortgage', property.mortgage_check);
+      updateCheckStatus('check-restrictions', property.restrictions);
+      updateCheckStatus('check-tax', property.tax_compliance);
+      updateCheckStatus('check-planning', property.planning_permission);
+      updateCheckStatus('check-building', property.building_regulations);
+      updateCheckStatus('check-authority', property.local_authority);
+      updateCheckStatus('check-utilities', property.utilities_check);
+      updateCheckStatus('check-environmental', property.environmental_check);
+      updateCheckStatus('check-flood', property.flood_risk);
+      updateCheckStatus('check-contamination', property.contamination);
+      updateCheckStatus('check-insurance', property.insurance_status);
+      updateCheckStatus('check-access', property.access_rights);
+
+      // Update completion summary
+      const totalChecks = 16;
+      const passedChecks = [
+        property.title_deed_check,
+        property.ownership_status,
+        property.boundary_verification,
+        property.legal_clearance,
+        property.mortgage_check,
+        property.restrictions,
+        property.tax_compliance,
+        property.planning_permission,
+        property.building_regulations,
+        property.local_authority,
+        property.utilities_check,
+        property.environmental_check,
+        property.flood_risk,
+        property.contamination,
+        property.insurance_status,
+        property.access_rights
+      ].filter(check => check && (check.includes('✓') || check.includes('Pass') || check.includes('Clear') || check.includes('Verified') || check.includes('Confirmed') || check.includes('Active') || check.includes('None'))).length;
+
+      document.getElementById('completion-summary').textContent = `${passedChecks} of ${totalChecks} checks passed`;
+      document.getElementById('final-trust-score').textContent = trustScore;
+
+      const scoreRingBorder = document.getElementById('score-ring-border');
+      const trustLevel = document.getElementById('trust-level');
+
+      if (trustScore >= 90) {
+        scoreRingBorder.style.borderColor = '#10b981';
+        trustLevel.textContent = 'Excellent';
+        trustLevel.className = 'inline-block px-4 py-2 bg-green-600 text-white rounded-full text-sm font-bold';
+      } else if (trustScore >= 70) {
+        scoreRingBorder.style.borderColor = '#f59e0b';
+        trustLevel.textContent = 'Good';
+        trustLevel.className = 'inline-block px-4 py-2 bg-yellow-600 text-white rounded-full text-sm font-bold';
+      } else {
+        scoreRingBorder.style.borderColor = '#ef4444';
+        trustLevel.textContent = 'Needs Attention';
+        trustLevel.className = 'inline-block px-4 py-2 bg-red-600 text-white rounded-full text-sm font-bold';
+      }
+    }
+
+    function updateBreakdownItem(elementId, status, maxPoints) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+
+      const isPassing = status && (status.includes('✓') || status.includes('Pass') || status.includes('Clear') || 
+                                   status.includes('Verified') || status.includes('Confirmed') || 
+                                   status.includes('Active') || status.includes('None') || status.includes('Low Risk'));
+      const isWarning = status && (status.includes('⚠') || status.includes('Warning') || status.includes('Medium'));
+
+      if (isPassing) {
+        const scoreSpan = element.querySelector('span:last-child');
+        if (scoreSpan) scoreSpan.textContent = `${maxPoints}/${maxPoints}`;
+        element.style.backgroundColor = '#f0fdf4';
+      } else if (isWarning) {
+        const points = Math.round(maxPoints * 0.7);
+        const scoreSpan = element.querySelector('span:last-child');
+        if (scoreSpan) scoreSpan.textContent = `${points}/${maxPoints}`;
+        element.style.backgroundColor = '#fffbeb';
+      } else {
+        const points = Math.round(maxPoints * 0.5);
+        const scoreSpan = element.querySelector('span:last-child');
+        if (scoreSpan) scoreSpan.textContent = `${points}/${maxPoints}`;
+        element.style.backgroundColor = '#fef2f2';
+      }
+    }
+
+    function updateCheckStatus(elementId, status) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+
+      const isPassing = status && (status.includes('✓') || status.includes('Pass') || status.includes('Clear') || 
+                                   status.includes('Verified') || status.includes('Confirmed') || 
+                                   status.includes('Active') || status.includes('None') || status.includes('Low Risk'));
+      const isWarning = status && (status.includes('⚠') || status.includes('Warning') || status.includes('Medium'));
+
+      element.className = 'verification-item';
+      
+      if (isPassing) {
+        element.classList.add('pass');
+      } else if (isWarning) {
+        element.classList.add('warning');
+      } else {
+        element.classList.add('fail');
+      }
+
+      const badge = element.querySelector('.status-badge');
+      if (badge) {
+        badge.textContent = status || 'N/A';
+        badge.className = 'status-badge';
+        if (isPassing) {
+          badge.classList.add('status-verified');
+        } else if (isWarning) {
+          badge.classList.add('status-warning');
+        } else {
+          badge.classList.add('status-error');
+        }
+      }
+    }
+
+    // Close Property Modal
+    document.getElementById('close-property-modal').addEventListener('click', function() {
+      document.getElementById('property-modal').classList.remove('active');
+    });
+
+    document.getElementById('property-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
+    });
+
+    // Modal Actions - Download Certificate
+    document.getElementById('modal-download-cert').addEventListener('click', function() {
+      if (!currentProperty) return;
+
+      const certificateText = generateCertificateText(currentProperty);
+      const blob = new Blob([certificateText], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Property_Verification_Certificate_${currentProperty.property_id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      showToast('Certificate downloaded successfully!');
+    });
+
+    function generateCertificateText(property) {
+      return `
+========================================
+PROPERTY VERIFICATION CERTIFICATE
+========================================
+
+Property ID: ${property.property_id}
+Property Address: ${property.property_address}
+Property Type: ${property.property_type}
+Area: ${property.area_sqft} sqft
+
+----------------------------------------
+TRUST SCORE: ${property.trust_score}/100
+----------------------------------------
+
+Owner: ${property.owner_name || 'N/A'}
+Registration Year: ${property.registration_year || 'N/A'}
+Verification Date: ${new Date(property.verification_date).toLocaleDateString('en-GB')}
+
+BLOCKCHAIN VERIFICATION
+Blockchain ID: ${property.blockchain_id}
+
+----------------------------------------
+VERIFICATION DETAILS
+----------------------------------------
+
+✓ Title Deed: ${property.title_deed_check || 'N/A'}
+✓ Ownership Status: ${property.ownership_status || 'N/A'}
+✓ Legal Clearance: ${property.legal_clearance || 'N/A'}
+✓ Boundary Verification: ${property.boundary_verification || 'N/A'}
+✓ Planning Permission: ${property.planning_permission || 'N/A'}
+✓ Building Regulations: ${property.building_regulations || 'N/A'}
+✓ Environmental Check: ${property.environmental_check || 'N/A'}
+✓ Flood Risk: ${property.flood_risk || 'N/A'}
+✓ Contamination: ${property.contamination || 'N/A'}
+✓ Utilities: ${property.utilities_check || 'N/A'}
+✓ Access Rights: ${property.access_rights || 'N/A'}
+✓ Restrictions: ${property.restrictions || 'N/A'}
+✓ Mortgage Check: ${property.mortgage_check || 'N/A'}
+✓ Local Authority: ${property.local_authority || 'N/A'}
+✓ Tax Compliance: ${property.tax_compliance || 'N/A'}
+✓ Insurance Status: ${property.insurance_status || 'N/A'}
+
+----------------------------------------
+This certificate is generated by ASSETRAZ
+UAE Property Verification Platform
+© ${new Date().getFullYear()}
+========================================
+      `;
+    }
+
+    // Modal Actions - Share Report
+    document.getElementById('modal-share').addEventListener('click', function() {
+      if (!currentProperty) return;
+
+      const shareText = `Property Verification Report\nID: ${currentProperty.property_id}\nTrust Score: ${currentProperty.trust_score}/100\nAddress: ${currentProperty.property_address}`;
+      
+      if (navigator.share) {
+        navigator.share({
+          title: 'Property Verification Report',
+          text: shareText
+        }).catch(err => console.log('Share cancelled'));
+      } else {
+        navigator.clipboard.writeText(shareText).then(() => {
+          showToast('Report details copied to clipboard!');
+        });
+      }
+    });
+
+    // Modal Actions - Delete Property
+    document.getElementById('modal-delete').addEventListener('click', async function() {
+      if (!currentProperty) return;
+
+      const confirmDelete = document.createElement('div');
+      confirmDelete.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[2000]';
+      confirmDelete.innerHTML = `
+        <div class="bg-white rounded-xl p-8 max-w-md shadow-2xl">
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Confirm Delete</h3>
+          <p class="text-gray-600 mb-6">Are you sure you want to delete this property? This action cannot be undone.</p>
+          <div class="flex gap-4">
+            <button id="confirm-delete-yes" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors">
+              Delete
+            </button>
+            <button id="confirm-delete-no" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(confirmDelete);
+
+      document.getElementById('confirm-delete-no').addEventListener('click', () => {
+        confirmDelete.remove();
+      });
+
+      document.getElementById('confirm-delete-yes').addEventListener('click', async () => {
+        const btn = document.getElementById('confirm-delete-yes');
+        btn.innerHTML = '<div class="spinner"></div>';
+        btn.disabled = true;
+
+        const result = await window.dataSdk.delete(currentProperty);
+
+        if (result.isOk) {
+          showToast('Property deleted successfully');
+          document.getElementById('property-modal').classList.remove('active');
+          confirmDelete.remove();
+        } else {
+          showToast('Failed to delete property', true);
+          btn.textContent = 'Delete';
+          btn.disabled = false;
+        }
+      });
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a27c6c787187fab',t:'MTc2MzgwNzY4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
